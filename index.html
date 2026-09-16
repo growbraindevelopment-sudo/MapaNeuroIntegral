@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa NeuroIntegral® | Sistema Completo de Valoración</title>
+    <!-- Librería para exportación a PDF nativo -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #2C5E43;
+            --primary-light: #EBF2EE;
+            --secondary: #8C4A32;
+            --accent: #D9A05B;
+            --bg: #F9F8F6;
+            --card-bg: #FFFFFF;
+            --text-main: #2D3748;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --badge-low: #DCFCE7;
+            --badge-low-text: #166534;
+            --badge-med: #FEF3C7;
+            --badge-med-text: #92400E;
+            --badge-high: #FEE2E2;
+            --badge-high-text: #991B1B;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.5; padding-bottom: 60px; }
+
+        .navbar {
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .navbar .brand { font-size: 1.2rem; font-weight: 700; }
+        .navbar .brand span { color: var(--accent); font-weight: 300; }
+
+        .container { max-width: 950px; margin: 2rem auto; padding: 0 1rem; }
+        .view-panel { display: none; }
+        .view-panel.active { display: block; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .card-header { border-bottom: 2px solid var(--primary-light); padding-bottom: 0.75rem; margin-bottom: 1.5rem; }
+        .card-title { color: var(--primary); font-size: 1.25rem; font-weight: 700; }
+        .card-subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+        /* Portal Inicial */
+        .portal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .portal-card {
+            background: white; border: 2px solid var(--border); border-radius: 12px; padding: 2.5rem 1.5rem;
+            text-align: center; cursor: pointer; transition: all 0.3s ease;
+        }
+        .portal-card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .portal-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .portal-title { color: var(--primary); font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+
+        /* Form Controls */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+        .form-group.full-width { grid-column: 1 / -1; }
+
+        label { font-size: 0.88rem; font-weight: 600; color: var(--text-main); }
+        input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="email"], select, textarea {
+            width: 100%; padding: 0.7rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; background-color: #FAFAFA;
+        }
+        textarea { min-height: 80px; resize: vertical; }
+
+        /* Preguntas */
+        .q-item { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1.1rem; border-radius: 8px; margin-bottom: 1.1rem; }
+        .q-text { font-size: 0.93rem; font-weight: 600; color: #1E293B; margin-bottom: 0.8rem; }
+        .q-options { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .q-option { flex: 1; min-width: 90px; }
+        .q-option input { display: none; }
+        .q-option label {
+            display: block; text-align: center; padding: 0.6rem 0.2rem; background: #FFFFFF;
+            border: 1px solid var(--border); border-radius: 6px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
+        }
+        .q-option input:checked + label { background: var(--primary); color: white; border-color: var(--primary); font-weight: 600; }
+
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.5rem; background: white; padding: 1rem; border-radius: 6px; border: 1px solid var(--border); }
+        .checkbox-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+        .checkbox-item input { width: auto; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; border: none; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-secondary { background-color: var(--secondary); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+
+        .score-card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        .score-card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem; text-align: center; }
+        .score-card .phase-name { font-size: 0.8rem; font-weight: 700; color: #64748B; text-transform: uppercase; }
+        .score-card .score-val { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin: 0.2rem 0; }
+        
+        .level-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
+        .lvl-bajo { background: var(--badge-low); color: var(--badge-low-text); }
+        .lvl-medio { background: var(--badge-med); color: var(--badge-med-text); }
+        .lvl-alto { background: var(--badge-high); color: var(--badge-high-text); }
+
+        /* Estilos gráficos para la Escala de Bristol */
+        .bristol-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+        .bristol-box { background: #FAFAFA; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px 2px; }
+        .bristol-num { display: inline-block; width: 22px; height: 22px; background: #2C5E43; color: white; border-radius: 50%; font-size: 0.75rem; font-weight: bold; line-height: 22px; margin-bottom: 4px; }
+        .bristol-svg { width: 100%; height: 35px; }
+        .bristol-txt-lbl { font-size: 0.68rem; color: #475569; font-weight: 600; line-height: 1.1; display: block; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">GROW BRAIN <span>CENTER</span> | Mapa NeuroIntegral®</div>
+        <button class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.4);" onclick="irAInicio()">🏠 Inicio Portal</button>
+    </nav>
+
+    <div class="container">
+
+        <!-- PÁGINA 1: PORTAL INICIAL -->
+        <div id="view-portal" class="view-panel active">
+            <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+                <h1 style="color: var(--primary); font-size: 1.8rem; margin-bottom: 0.5rem;">Bienvenido al Portal NeuroIntegral®</h1>
+                <p style="color: var(--text-muted); max-width: 650px; margin: 0 auto 2rem auto;">
+                    Plataforma de Diagnóstico Situacional del Neurodesarrollo y Valoración Clínica de GROW Brain Center. Por favor, seleccione su perfil de ingreso:
+                </p>
+
+                <div class="portal-grid">
+                    <div class="portal-card" onclick="seleccionarRol('padre')">
+                        <div class="portal-icon">👨‍👩‍👧‍👦</div>
+                        <div class="portal-title">Soy Padre / Tutor</div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">
+                            Deseo completar el Test Diagnóstico Situacional completo previo a la cita asignada.
+                        </p>
+                    </div>
+
+                    <div class="portal-card" onclick="seleccionarRol('especialista')">
+                        <div class="portal-icon">🩺</div>
+                        <div class="portal-title">Soy Especialista</div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">
+                            Ingresar al panel clínico para consultar expedientes, evaluar viabilidad y emitir informes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PÁGINA 2: FORMULARIO COMPLETO DEL PADRE -->
+        <div id="view-padre" class="view-panel">
+            <div class="card" style="border-top: 4px solid var(--primary);">
+                <div class="card-header">
+                    <div class="card-title">Test Diagnóstico Situacional del Neurodesarrollo</div>
+                    <div class="card-subtitle">Complete todas las secciones. Sus respuestas construirán la matriz operativa por fases.</div>
+                </div>
+
+                <form id="formPadre">
+                    <!-- DATOS DE IDENTIFICACIÓN -->
+                    <h4 style="color: var(--primary); margin-bottom: 1rem;">1. Datos de Identificación (No Puntuables)</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Nombre Completo del Tutor:</label>
+                            <input type="text" id="p_tutor" placeholder="Ej. Ana Ramírez" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Correo Electrónico:</label>
+                            <input type="email" id="p_correo" placeholder="correo@ejemplo.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono Celular:</label>
+                            <input type="text" id="p_celular" placeholder="+507 6000-0000" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre Completo del Niño(a):</label>
+                            <input type="text" id="p_nombre_nino" placeholder="Ej. Mateo Gómez" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Número de Identidad Personal (Cédula/ID):</label>
+                            <input type="text" id="p_id_nino" placeholder="Ej. 8-1022-455" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de Nacimiento del Niño(a):</label>
+                            <input type="date" id="p_fecha_nac" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Edad del Niño(a):</label>
+                            <input type="text" id="p_edad" placeholder="Ej. 8 años">
+                        </div>
+                        <div class="form-group">
+                            <label>Peso (kg):</label>
+                            <input type="number" id="p_peso" placeholder="25">
+                        </div>
+                        <div class="form-group">
+                            <label>Estatura (cm):</label>
+                            <input type="number" id="p_estatura" placeholder="125">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Diagnósticos Previos (si aplica):</label>
+                            <input type="text" id="p_dx_previos" placeholder="Ej. TDAH, Asma, Ninguno">
+                        </div>
+                    </div>
+
+                    <!-- FASE 1: NEUROEQUILIBRIO FAMILIAR -->
+                    <h4 style="color: var(--primary); margin-top: 2.5rem; margin-bottom: 1rem;">Fase 1 – NeuroEquilibrio Familiar (12 Ítems)</h4>
+                    
+                    <div class="q-item">
+                        <div class="q-text">1. ¿Con qué frecuencia sientes que puedes manejar el estrés diario relacionado con el cuidado de tu hijo?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q1" id="f1_1_5" value="5" data-label="Nunca"><label for="f1_1_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q1" id="f1_1_4" value="4" data-label="Rara vez"><label for="f1_1_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q1" id="f1_1_3" value="3" data-label="A veces"><label for="f1_1_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q1" id="f1_1_2" value="2" data-label="A menudo"><label for="f1_1_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q1" id="f1_1_1" value="1" data-label="Siempre" checked><label for="f1_1_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">2. ¿Con qué frecuencia sientes apoyo emocional por parte de tu pareja, familia o amigos?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q2" id="f1_2_5" value="5" data-label="Nunca"><label for="f1_2_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q2" id="f1_2_4" value="4" data-label="Rara vez"><label for="f1_2_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q2" id="f1_2_3" value="3" data-label="A veces"><label for="f1_2_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q2" id="f1_2_2" value="2" data-label="A menudo"><label for="f1_2_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q2" id="f1_2_1" value="1" data-label="Siempre" checked><label for="f1_2_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">3. ¿Con qué frecuencia encuentras tiempo para actividades que te ayudan a relajarte o te brindan satisfacción personal?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q3" id="f1_3_5" value="5" data-label="Nunca"><label for="f1_3_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q3" id="f1_3_4" value="4" data-label="Rara vez"><label for="f1_3_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q3" id="f1_3_3" value="3" data-label="A veces"><label for="f1_3_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q3" id="f1_3_2" value="2" data-label="A menudo"><label for="f1_3_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q3" id="f1_3_1" value="1" data-label="Siempre" checked><label for="f1_3_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">4. ¿Con qué frecuencia te sientes abrumada por las demandas del día a día?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q4" id="f1_4_1" value="1" data-label="Nunca" checked><label for="f1_4_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q4" id="f1_4_2" value="2" data-label="Rara vez"><label for="f1_4_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q4" id="f1_4_3" value="3" data-label="A veces"><label for="f1_4_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q4" id="f1_4_4" value="4" data-label="A menudo"><label for="f1_4_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q4" id="f1_4_5" value="5" data-label="Siempre"><label for="f1_4_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">5. ¿Con qué frecuencia sientes que puedes comunicar tus emociones de manera efectiva con los demás?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q5" id="f1_5_5" value="5" data-label="Nunca"><label for="f1_5_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q5" id="f1_5_4" value="4" data-label="Rara vez"><label for="f1_5_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q5" id="f1_5_3" value="3" data-label="A veces"><label for="f1_5_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q5" id="f1_5_2" value="2" data-label="A menudo"><label for="f1_5_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q5" id="f1_5_1" value="1" data-label="Siempre" checked><label for="f1_5_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">6. ¿Con qué frecuencia te sientes satisfecha con los progresos o logros de tu hijo, independientemente de su ritmo?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q6" id="f1_6_5" value="5" data-label="Nunca"><label for="f1_6_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q6" id="f1_6_4" value="4" data-label="Rara vez"><label for="f1_6_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q6" id="f1_6_3" value="3" data-label="A veces"><label for="f1_6_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q6" id="f1_6_2" value="2" data-label="A menudo"><label for="f1_6_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q6" id="f1_6_1" value="1" data-label="Siempre" checked><label for="f1_6_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">7. ¿Con qué frecuencia te sientes en control de las decisiones relacionadas con la crianza y la educación de tu hijo?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q7" id="f1_7_5" value="5" data-label="Nunca"><label for="f1_7_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q7" id="f1_7_4" value="4" data-label="Rara vez"><label for="f1_7_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q7" id="f1_7_3" value="3" data-label="A veces"><label for="f1_7_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q7" id="f1_7_2" value="2" data-label="A menudo"><label for="f1_7_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q7" id="f1_7_1" value="1" data-label="Siempre" checked><label for="f1_7_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">8. ¿Con qué frecuencia experimentas sentimientos de culpa relacionados con el desarrollo o comportamiento de tu hijo?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q8" id="f1_8_1" value="1" data-label="Nunca" checked><label for="f1_8_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q8" id="f1_8_2" value="2" data-label="Rara vez"><label for="f1_8_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q8" id="f1_8_3" value="3" data-label="A veces"><label for="f1_8_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q8" id="f1_8_4" value="4" data-label="A menudo"><label for="f1_8_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q8" id="f1_8_5" value="5" data-label="Siempre"><label for="f1_8_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">9. ¿Con qué frecuencia tienes energía suficiente para cumplir con las responsabilidades diarias?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q9" id="f1_9_5" value="5" data-label="Nunca"><label for="f1_9_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q9" id="f1_9_4" value="4" data-label="Rara vez"><label for="f1_9_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q9" id="f1_9_3" value="3" data-label="A veces"><label for="f1_9_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q9" id="f1_9_2" value="2" data-label="A menudo"><label for="f1_9_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q9" id="f1_9_1" value="1" data-label="Siempre" checked><label for="f1_9_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">10. ¿Con qué frecuencia sientes que formas parte de una comunidad que entiende tu experiencia como madre/padre?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q10" id="f1_10_5" value="5" data-label="Nunca"><label for="f1_10_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q10" id="f1_10_4" value="4" data-label="Rara vez"><label for="f1_10_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q10" id="f1_10_3" value="3" data-label="A veces"><label for="f1_10_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q10" id="f1_10_2" value="2" data-label="A menudo"><label for="f1_10_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q10" id="f1_10_1" value="1" data-label="Siempre" checked><label for="f1_10_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">11. ¿Qué pensamiento o creencia identificas que limita tu capacidad para ayudar a tu hijo a evolucionar?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q11" id="f1_11_5" value="5" data-label="No tengo las habilidades"><label for="f1_11_5">No tengo las habilidades</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q11" id="f1_11_4" value="4" data-label="No dispongo de tiempo"><label for="f1_11_4">No dispongo de tiempo</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q11" id="f1_11_2" value="2" data-label="Tengo la energía/motivación"><label for="f1_11_2">Tengo la energía/motivación</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q11" id="f1_11_1" value="1" data-label="Creo que yo puedo ayudarlo" checked><label for="f1_11_1">Creo que yo puedo ayudarlo</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">12. ¿Te resulta fácil pedir ayuda cuando la necesitas?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f1_q12" id="f1_12_1" value="1" data-label="Sí, siempre" checked><label for="f1_12_1">Sí, siempre</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q12" id="f1_12_3" value="3" data-label="A veces, debería sola"><label for="f1_12_3">A veces, debería sola</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q12" id="f1_12_4" value="4" data-label="Prefiero resolver sola"><label for="f1_12_4">Prefiero resolver sola</label></div>
+                            <div class="q-option"><input type="radio" name="f1_q12" id="f1_12_5" value="5" data-label="Me cuesta reconocer ayuda"><label for="f1_12_5">Me cuesta reconocer ayuda</label></div>
+                        </div>
+                    </div>
+
+                    <!-- FASE 2: NEUROBIO OPTIMIZACIÓN -->
+                    <h4 style="color: var(--primary); margin-top: 2.5rem; margin-bottom: 1rem;">Fase 2 – NeuroBio Optimización (22 Ítems)</h4>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>1. ¿Tu hijo/a nació por?</label>
+                            <select id="f2_q1"><option value="Parto natural">Parto natural</option><option value="Cesárea">Cesárea</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>2. ¿Nació a término o prematuro?</label>
+                            <select id="f2_q2"><option value="A término">A término</option><option value="Prematuro">Prematuro</option></select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>3. ¿Cómo fue la alimentación durante su primer año de vida?</label>
+                            <input type="text" id="f2_q3" placeholder="Lactancia materna exclusiva, fórmula, mixta...">
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>4. Marque las condiciones que el niño(a) posee o ha padecido (Bandera/Contexto):</label>
+                        <div class="checkbox-grid">
+                            <div class="checkbox-item"><input type="checkbox" id="c_depresion" value="Depresión"><label for="c_depresion">Depresión</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="c_ansiedad" value="Ansiedad"><label for="c_ansiedad">Ansiedad</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="c_hiper" value="Hiperactividad"><label for="c_hiper">Hiperactividad</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="c_insomnio" value="Insomnio"><label for="c_insomnio">Insomnio</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="c_rinitis" value="Rinitis"><label for="c_rinitis">Rinitis</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="c_dermatitis" value="Dermatitis"><label for="c_dermatitis">Dermatitis</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="c_epilepsia" value="Epilepsia / Convulsiones"><label for="c_epilepsia">Epilepsia / Convulsiones</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="c_estrenimiento" value="Estreñimiento"><label for="c_estrenimiento">Estreñimiento</label></div>
+                            <div class="checkbox-item"><input type="checkbox" id="c_diarrea" value="Diarrea / Gases"><label for="c_diarrea">Diarrea / Gases</label></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>5. Si toma medicamentos actualmente, indique nombre, dosis y frecuencia:</label>
+                        <input type="text" id="f2_q5" placeholder="Ej. Ritalina 10mg / Ninguno">
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">6. ¿Con qué frecuencia consume su hijo alimentos ultra-procesados (refrescos, papitas, galletas, embutidos)?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q6" id="f2_6_1" value="1" data-label="Nunca" checked><label for="f2_6_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q6" id="f2_6_2" value="2" data-label="Rara vez"><label for="f2_6_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q6" id="f2_6_3" value="3" data-label="A veces"><label for="f2_6_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q6" id="f2_6_4" value="4" data-label="A menudo"><label for="f2_6_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q6" id="f2_6_5" value="5" data-label="Siempre"><label for="f2_6_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">8. ¿Con qué frecuencia come una dieta equilibrada que incluya frutas, verduras, proteínas y carbohidratos?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q8" id="f2_8_5" value="5" data-label="Nunca"><label for="f2_8_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q8" id="f2_8_4" value="4" data-label="Rara vez"><label for="f2_8_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q8" id="f2_8_3" value="3" data-label="A veces"><label for="f2_8_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q8" id="f2_8_2" value="2" data-label="A menudo"><label for="f2_8_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q8" id="f2_8_1" value="1" data-label="Siempre" checked><label for="f2_8_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">9. ¿Con qué frecuencia tu hijo muestra interés en probar nuevos alimentos?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q9" id="f2_9_5" value="5" data-label="Nunca"><label for="f2_9_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q9" id="f2_9_4" value="4" data-label="Rara vez"><label for="f2_9_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q9" id="f2_9_3" value="3" data-label="A veces"><label for="f2_9_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q9" id="f2_9_2" value="2" data-label="A menudo"><label for="f2_9_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q9" id="f2_9_1" value="1" data-label="Siempre" checked><label for="f2_9_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">10. ¿Con qué frecuencia tu hijo rechaza alimentos debido a su textura, color o temperatura?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q10" id="f2_10_1" value="1" data-label="Nunca" checked><label for="f2_10_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q10" id="f2_10_2" value="2" data-label="Rara vez"><label for="f2_10_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q10" id="f2_10_3" value="3" data-label="A veces"><label for="f2_10_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q10" id="f2_10_4" value="4" data-label="A menudo"><label for="f2_10_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q10" id="f2_10_5" value="5" data-label="Siempre"><label for="f2_10_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">12. ¿Con qué frecuencia experimenta problemas de atragantamiento o dificultad para masticar y tragar?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q12" id="f2_12_1" value="1" data-label="Nunca" checked><label for="f2_12_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q12" id="f2_12_2" value="2" data-label="Rara vez"><label for="f2_12_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q12" id="f2_12_3" value="3" data-label="A veces"><label for="f2_12_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q12" id="f2_12_4" value="4" data-label="A menudo"><label for="f2_12_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q12" id="f2_12_5" value="5" data-label="Siempre"><label for="f2_12_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">13. ¿Con qué frecuencia tu hijo duerme toda la noche sin interrupciones?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q13" id="f2_13_5" value="5" data-label="Nunca"><label for="f2_13_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q13" id="f2_13_4" value="4" data-label="Rara vez"><label for="f2_13_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q13" id="f2_13_3" value="3" data-label="A veces"><label for="f2_13_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q13" id="f2_13_2" value="2" data-label="A menudo"><label for="f2_13_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q13" id="f2_13_1" value="1" data-label="Siempre" checked><label for="f2_13_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">14. ¿Con qué frecuencia tu hijo se duerme fácilmente por las noches?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q14" id="f2_14_5" value="5" data-label="Nunca"><label for="f2_14_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q14" id="f2_14_4" value="4" data-label="Rara vez"><label for="f2_14_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q14" id="f2_14_3" value="3" data-label="A veces"><label for="f2_14_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q14" id="f2_14_2" value="2" data-label="A menudo"><label for="f2_14_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q14" id="f2_14_1" value="1" data-label="Siempre" checked><label for="f2_14_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">15. ¿Con qué frecuencia tu hijo parece descansar lo suficiente como para estar alerta y activo?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q15" id="f2_15_5" value="5" data-label="Nunca"><label for="f2_15_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q15" id="f2_15_4" value="4" data-label="Rara vez"><label for="f2_15_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q15" id="f2_15_3" value="3" data-label="A veces"><label for="f2_15_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q15" id="f2_15_2" value="2" data-label="A menudo"><label for="f2_15_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q15" id="f2_15_1" value="1" data-label="Siempre" checked><label for="f2_15_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">17. ¿Con qué frecuencia tu hijo tiene evacuaciones regulares (una vez al día)?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q17" id="f2_17_5" value="5" data-label="Nunca"><label for="f2_17_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q17" id="f2_17_4" value="4" data-label="Rara vez"><label for="f2_17_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q17" id="f2_17_3" value="3" data-label="A veces"><label for="f2_17_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q17" id="f2_17_2" value="2" data-label="A menudo"><label for="f2_17_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q17" id="f2_17_1" value="1" data-label="Siempre" checked><label for="f2_17_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <!-- PREGUNTA 18: CON ILUSTRACIÓN VECTORIAL SVG INTEGRADA DE LA ESCALA DE BRISTOL -->
+                    <div class="q-item">
+                        <div class="q-text">18. Indica cómo han lucido las heces de tu hijo/a (Escala de Bristol 1–7):</div>
+                        
+                        <div class="bristol-grid-header">
+                            <div class="bristol-box">
+                                <span class="bristol-num">1</span>
+                                <svg class="bristol-svg" viewBox="0 0 100 50">
+                                    <circle cx="20" cy="25" r="8" fill="#5c3a21"/><circle cx="50" cy="18" r="9" fill="#5c3a21"/>
+                                    <circle cx="80" cy="30" r="7" fill="#5c3a21"/><circle cx="40" cy="35" r="6" fill="#5c3a21"/>
+                                </svg>
+                                <span class="bristol-txt-lbl">Trozos duros</span>
+                            </div>
+                            <div class="bristol-box">
+                                <span class="bristol-num">2</span>
+                                <svg class="bristol-svg" viewBox="0 0 100 50">
+                                    <path d="M15 25 Q 30 15, 50 25 T 85 25" stroke="#6e4727" stroke-width="18" stroke-linecap="round" fill="none"/>
+                                    <circle cx="30" cy="20" r="4" fill="#4a2e15"/><circle cx="55" cy="28" r="5" fill="#4a2e15"/><circle cx="70" cy="22" r="4" fill="#4a2e15"/>
+                                </svg>
+                                <span class="bristol-txt-lbl">Grumosa</span>
+                            </div>
+                            <div class="bristol-box">
+                                <span class="bristol-num">3</span>
+                                <svg class="bristol-svg" viewBox="0 0 100 50">
+                                    <rect x="15" y="18" width="70" height="14" rx="7" fill="#84562c"/>
+                                    <line x1="30" y1="18" x2="35" y2="32" stroke="#4a2e15" stroke-width="2"/>
+                                    <line x1="55" y1="18" x2="50" y2="32" stroke="#4a2e15" stroke-width="2"/>
+                                    <line x1="70" y1="18" x2="72" y2="32" stroke="#4a2e15" stroke-width="2"/>
+                                </svg>
+                                <span class="bristol-txt-lbl">Con grietas</span>
+                            </div>
+                            <div class="bristol-box">
+                                <span class="bristol-num">4</span>
+                                <svg class="bristol-svg" viewBox="0 0 100 50">
+                                    <path d="M15 25 C 40 10, 60 40, 85 25" stroke="#84562c" stroke-width="14" stroke-linecap="round" fill="none"/>
+                                </svg>
+                                <span class="bristol-txt-lbl">Lisa/Suave</span>
+                            </div>
+                            <div class="bristol-box">
+                                <span class="bristol-num">5</span>
+                                <svg class="bristol-svg" viewBox="0 0 100 50">
+                                    <path d="M 20 25 Q 30 15 40 25 Q 30 35 20 25" fill="#a06c3f"/>
+                                    <path d="M 50 25 Q 60 15 70 25 Q 60 35 50 25" fill="#a06c3f"/>
+                                    <path d="M 75 30 Q 82 22 90 30 Q 82 38 75 30" fill="#a06c3f"/>
+                                </svg>
+                                <span class="bristol-txt-lbl">Bolas blandas</span>
+                            </div>
+                            <div class="bristol-box">
+                                <span class="bristol-num">6</span>
+                                <svg class="bristol-svg" viewBox="0 0 100 50">
+                                    <path d="M10 30 Q 25 15 40 32 T 70 28 T 90 35 Z" fill="#b57e4c"/>
+                                </svg>
+                                <span class="bristol-txt-lbl">Pastosa</span>
+                            </div>
+                            <div class="bristol-box">
+                                <span class="bristol-num">7</span>
+                                <svg class="bristol-svg" viewBox="0 0 100 50">
+                                    <ellipse cx="50" cy="30" rx="40" ry="8" fill="#c48d55"/>
+                                </svg>
+                                <span class="bristol-txt-lbl">Líquida</span>
+                            </div>
+                        </div>
+
+                        <div class="q-options" style="flex-direction: column; gap: 0.6rem;">
+                            <div class="q-option">
+                                <input type="radio" name="f2_q18" id="f2_18_1" value="5" data-label="Tipo 1: Trozos duros y separados">
+                                <label for="f2_18_1" style="text-align: left; padding: 0.8rem 1rem;">
+                                    <strong>Tipo 1:</strong> Trozos duros y separados, como nueces o avellanas, que cuestan mucho expulsar (indica estreñimiento severo).
+                                </label>
+                            </div>
+                            <div class="q-option">
+                                <input type="radio" name="f2_q18" id="f2_18_2" value="4" data-label="Tipo 2: Forma de salchicha grumosa">
+                                <label for="f2_18_2" style="text-align: left; padding: 0.8rem 1rem;">
+                                    <strong>Tipo 2:</strong> Forma de salchicha pero abultada y grumosa (indica estreñimiento).
+                                </label>
+                            </div>
+                            <div class="q-option">
+                                <input type="radio" name="f2_q18" id="f2_18_3" value="1" data-label="Tipo 3: Salchicha con grietas" checked>
+                                <label for="f2_18_3" style="text-align: left; padding: 0.8rem 1rem;">
+                                    <strong>Tipo 3:</strong> Con forma de salchicha y con grietas en la superficie (tránsito normal).
+                                </label>
+                            </div>
+                            <div class="q-option">
+                                <input type="radio" name="f2_q18" id="f2_18_4" value="1" data-label="Tipo 4: Salchicha lisa y suave">
+                                <label for="f2_18_4" style="text-align: left; padding: 0.8rem 1rem;">
+                                    <strong>Tipo 4:</strong> Con forma de salchicha o serpiente, lisa, suave y blanda (tránsito ideal o normal).
+                                </label>
+                            </div>
+                            <div class="q-option">
+                                <input type="radio" name="f2_q18" id="f2_18_5" value="3" data-label="Tipo 5: Bolas blandas con bordes definidos">
+                                <label for="f2_18_5" style="text-align: left; padding: 0.8rem 1rem;">
+                                    <strong>Tipo 5:</strong> Bolas blandas con bordes definidos que se evacuan fácilmente (indica falta de fibra o tránsito rápido leve).
+                                </label>
+                            </div>
+                            <div class="q-option">
+                                <input type="radio" name="f2_q18" id="f2_18_6" value="4" data-label="Tipo 6: Pedazos blandos esponjosos o pastosos">
+                                <label for="f2_18_6" style="text-align: left; padding: 0.8rem 1rem;">
+                                    <strong>Tipo 6:</strong> Pedazos blandos y esponjosos con bordes irregulares o consistencia pastosa (indica ligera diarrea).
+                                </label>
+                            </div>
+                            <div class="q-option">
+                                <input type="radio" name="f2_q18" id="f2_18_7" value="5" data-label="Tipo 7: Acuosas totalmente líquidas">
+                                <label for="f2_18_7" style="text-align: left; padding: 0.8rem 1rem;">
+                                    <strong>Tipo 7:</strong> Acuosas, totalmente líquidas y sin trozos sólidos (diarrea importante).
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">19. ¿Con qué frecuencia experimenta molestias como estreñimiento, diarrea o dolor abdominal?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f2_q19" id="f2_19_1" value="1" data-label="Nunca" checked><label for="f2_19_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q19" id="f2_19_2" value="2" data-label="Rara vez"><label for="f2_19_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q19" id="f2_19_3" value="3" data-label="A veces"><label for="f2_19_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q19" id="f2_19_4" value="4" data-label="A menudo"><label for="f2_19_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f2_q19" id="f2_19_5" value="5" data-label="Siempre"><label for="f2_19_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <!-- FASE 3: NEUROACTIVACIÓN EFECTIVA -->
+                    <h4 style="color: var(--primary); margin-top: 2.5rem; margin-bottom: 1rem;">Fase 3 – NeuroActivación Efectiva (16 Ítems)</h4>
+
+                    <div class="q-item">
+                        <div class="q-text">1. ¿Con qué frecuencia muestra interés en resolver problemas (rompecabezas, juegos lógicos)?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q1" id="f3_1_5" value="5" data-label="Nunca"><label for="f3_1_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q1" id="f3_1_4" value="4" data-label="Rara vez"><label for="f3_1_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q1" id="f3_1_3" value="3" data-label="A veces"><label for="f3_1_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q1" id="f3_1_2" value="2" data-label="A menudo"><label for="f3_1_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q1" id="f3_1_1" value="1" data-label="Siempre" checked><label for="f3_1_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">2. ¿Tu hijo presta atención a los detalles visuales en su entorno, como patrones o colores?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q2" id="f3_2_1" value="1" data-label="Sí" checked><label for="f3_2_1">Sí</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q2" id="f3_2_3" value="3" data-label="A veces"><label for="f3_2_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q2" id="f3_2_5" value="5" data-label="No"><label for="f3_2_5">No</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">3. ¿Con qué frecuencia se concentra en una actividad sin distraerse fácilmente?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q3" id="f3_3_5" value="5" data-label="Nunca"><label for="f3_3_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q3" id="f3_3_4" value="4" data-label="Rara vez"><label for="f3_3_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q3" id="f3_3_3" value="3" data-label="A veces"><label for="f3_3_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q3" id="f3_3_2" value="2" data-label="A menudo"><label for="f3_3_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q3" id="f3_3_1" value="1" data-label="Siempre" checked><label for="f3_3_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">4. ¿Se distrae fácilmente con cambios en la iluminación o el movimiento en su entorno?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q4" id="f3_4_5" value="5" data-label="Sí"><label for="f3_4_5">Sí</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q4" id="f3_4_3" value="3" data-label="A veces"><label for="f3_4_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q4" id="f3_4_1" value="1" data-label="No" checked><label for="f3_4_1">No</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">5. ¿Con qué frecuencia sigue instrucciones de más de un paso sin dificultad?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q5" id="f3_5_5" value="5" data-label="Nunca"><label for="f3_5_5">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q5" id="f3_5_4" value="4" data-label="Rara vez"><label for="f3_5_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q5" id="f3_5_3" value="3" data-label="A veces"><label for="f3_5_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q5" id="f3_5_2" value="2" data-label="A menudo"><label for="f3_5_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q5" id="f3_5_1" value="1" data-label="Siempre" checked><label for="f3_5_1">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">6. ¿Responde a su nombre cuando se le llama?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q6" id="f3_6_1" value="1" data-label="Siempre" checked><label for="f3_6_1">Siempre</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q6" id="f3_6_3" value="3" data-label="A veces"><label for="f3_6_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q6" id="f3_6_4" value="4" data-label="Rara vez"><label for="f3_6_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q6" id="f3_6_5" value="5" data-label="Nunca"><label for="f3_6_5">Nunca</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">7. ¿Hace contacto visual durante las conversaciones?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q7" id="f3_7_1" value="1" data-label="Siempre" checked><label for="f3_7_1">Siempre</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q7" id="f3_7_3" value="3" data-label="A veces"><label for="f3_7_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q7" id="f3_7_4" value="4" data-label="Rara vez"><label for="f3_7_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q7" id="f3_7_5" value="5" data-label="Nunca"><label for="f3_7_5">Nunca</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">8. ¿Puede resolver conflictos con otros niños de manera apropiada para su edad?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q8" id="f3_8_1" value="1" data-label="Siempre" checked><label for="f3_8_1">Siempre</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q8" id="f3_8_2" value="2" data-label="A menudo"><label for="f3_8_2">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q8" id="f3_8_4" value="4" data-label="En muy pocas ocasiones"><label for="f3_8_4">En muy pocas ocasiones</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q8" id="f3_8_5" value="5" data-label="Nunca"><label for="f3_8_5">Nunca</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">9. ¿Puede seguir una rutina diaria básica (levantarse, vestirse, comer) sin mucha intervención adulta?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q9" id="f3_9_1" value="1" data-label="Siempre" checked><label for="f3_9_1">Siempre</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q9" id="f3_9_3" value="3" data-label="A veces"><label for="f3_9_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q9" id="f3_9_4" value="4" data-label="Rara vez"><label for="f3_9_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q9" id="f3_9_5" value="5" data-label="Nunca"><label for="f3_9_5">Nunca</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">10. ¿Puede organizar sus juguetes u objetos personales después de usarlos?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q10" id="f3_10_1" value="1" data-label="Siempre" checked><label for="f3_10_1">Siempre</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q10" id="f3_10_3" value="3" data-label="A veces"><label for="f3_10_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q10" id="f3_10_4" value="4" data-label="Rara vez"><label for="f3_10_4">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q10" id="f3_10_5" value="5" data-label="Nunca"><label for="f3_10_5">Nunca</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">13. ¿Con qué frecuencia a tu hijo le incomodan texturas específicas o evita otras, como etiquetas en la ropa?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q13" id="f3_13_1" value="1" data-label="Nunca" checked><label for="f3_13_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q13" id="f3_13_2" value="2" data-label="Rara vez"><label for="f3_13_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q13" id="f3_13_3" value="3" data-label="A veces"><label for="f3_13_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q13" id="f3_13_4" value="4" data-label="A menudo"><label for="f3_13_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q13" id="f3_13_5" value="5" data-label="Siempre"><label for="f3_13_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">14. ¿Con qué frecuencia realiza actividades de movimiento (girar, saltar, balancearse) de forma insistente?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q14" id="f3_14_1" value="1" data-label="Nunca" checked><label for="f3_14_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q14" id="f3_14_2" value="2" data-label="Rara vez"><label for="f3_14_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q14" id="f3_14_3" value="3" data-label="A veces"><label for="f3_14_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q14" id="f3_14_4" value="4" data-label="A menudo"><label for="f3_14_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q14" id="f3_14_5" value="5" data-label="Siempre"><label for="f3_14_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">15. ¿Con qué frecuencia muestra sensibilidad a luces brillantes o cambios en la iluminación?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q15" id="f3_15_1" value="1" data-label="Nunca" checked><label for="f3_15_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q15" id="f3_15_2" value="2" data-label="Rara vez"><label for="f3_15_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q15" id="f3_15_3" value="3" data-label="A veces"><label for="f3_15_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q15" id="f3_15_4" value="4" data-label="A menudo"><label for="f3_15_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q15" id="f3_15_5" value="5" data-label="Siempre"><label for="f3_15_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div class="q-item">
+                        <div class="q-text">16. ¿Con qué frecuencia parece notar olores o sabores que otros no perciben o reacciona fuertemente a ellos?</div>
+                        <div class="q-options">
+                            <div class="q-option"><input type="radio" name="f3_q16" id="f3_16_1" value="1" data-label="Nunca" checked><label for="f3_16_1">Nunca</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q16" id="f3_16_2" value="2" data-label="Rara vez"><label for="f3_16_2">Rara vez</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q16" id="f3_16_3" value="3" data-label="A veces"><label for="f3_16_3">A veces</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q16" id="f3_16_4" value="4" data-label="A menudo"><label for="f3_16_4">A menudo</label></div>
+                            <div class="q-option"><input type="radio" name="f3_q16" id="f3_16_5" value="5" data-label="Siempre"><label for="f3_16_5">Siempre</label></div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: right; margin-top: 2rem;">
+                        <button type="button" class="btn btn-primary" onclick="guardarFormularioPadre()">
+                            ✓ Finalizar y Enviar Cuestionario
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- PÁGINA 3: PANEL DEL ESPECIALISTA -->
+        <div id="view-especialista" class="view-panel">
+            
+            <div class="card" style="border-top: 4px solid var(--primary);">
+                <div class="card-header">
+                    <div class="card-title">🔍 Búsqueda de Cuestionario de Valoración Situacional</div>
+                    <div class="card-subtitle">Seleccione el especialista a cargo e ingrese la contraseña y datos del paciente para recuperar el expediente.</div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Especialista a cargo de la evaluación:</label>
+                        <select id="busq_especialista" style="font-weight: 600;">
+                            <option value="Carmen R. Pedreschi">Carmen Ramirez</option>
+                            <option value="Jacqueline Salinas">Jacqueline Salinas</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>🔒 Contraseña de Acceso Especialista:</label>
+                        <input type="password" id="busq_pass" placeholder="Ingrese contraseña autorizada">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre Completo del Niño(a):</label>
+                        <input type="text" id="busq_nombre" placeholder="Ej. Mateo Gómez">
+                    </div>
+                    <div class="form-group">
+                        <label>Número de Identidad Personal (Cédula/ID):</label>
+                        <input type="text" id="busq_id" placeholder="Ej. 8-1022-455">
+                    </div>
+                </div>
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="buscarExpediente()">🔍 Buscar y Cargar Datos</button>
+                </div>
+            </div>
+
+            <div id="panel_evaluacion_clinica" style="display: none;">
+                <div class="card" style="border-top: 4px solid var(--secondary);">
+                    <div class="card-header">
+                        <div class="card-title">Matriz Operativa de Análisis (Mapa NeuroIntegral®)</div>
+                        <div class="card-subtitle">Puntuación obtenida del cuestionario cargado.</div>
+                    </div>
+
+                    <div class="score-card-grid">
+                        <div class="score-card">
+                            <div class="phase-name">Fase 1: NeuroEquilibrio</div>
+                            <div class="score-val" id="res_f1_pct">0%</div>
+                            <span class="level-badge" id="res_f1_lvl">--</span>
+                        </div>
+                        <div class="score-card">
+                            <div class="phase-name">Fase 2: NeuroBio</div>
+                            <div class="score-val" id="res_f2_pct">0%</div>
+                            <span class="level-badge" id="res_f2_lvl">--</span>
+                        </div>
+                        <div class="score-card">
+                            <div class="phase-name">Fase 3: NeuroActivación</div>
+                            <div class="score-val" id="res_f3_pct">0%</div>
+                            <span class="level-badge" id="res_f3_lvl">--</span>
+                        </div>
+                    </div>
+
+                    <div style="background: #F1F5F9; padding: 1rem; border-radius: 8px; text-align: center; margin-bottom: 1.5rem;">
+                        <strong>PROMEDIO GENERAL GLOBAL:</strong> <span id="res_global_pct" style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">0%</span>
+                        — <span id="res_global_lvl" class="level-badge">--</span>
+                    </div>
+
+                    <h4 style="color: var(--secondary); margin-bottom: 1rem;">Criterio Técnico del Especialista en Sesión</h4>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>1. Enfermedades de base o Medicación que Comprometa el Programa:</label>
+                            <select id="e_medico_flag">
+                                <option value="No">No presenta patologías / Medicación compatible</option>
+                                <option value="Si">Sí presenta condición de riesgo o fármaco limitante</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>2. Viabilidad Económica y Compromiso Familiar:</label>
+                            <select id="e_economico_flag">
+                                <option value="Viable">Viable - Recursos confirmados y alto compromiso</option>
+                                <option value="Plan Ajustado">Requiere Plan de Pago Escalonado</option>
+                                <option value="No Viable">No Viable económicamente en este momento</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>3. Dictamen Final de Atención:</label>
+                        <select id="e_dictamen" style="font-weight: 700; color: var(--primary);">
+                            <option value="VIABLE - Candidato Apto para Programa Neuro GeneZen®">VIABLE - Candidato Apto para Programa Neuro GeneZen®</option>
+                            <option value="VIABLE CON CONDICIONES - Requiere Abordaje Médico/Previo">VIABLE CON CONDICIONES - Requiere Abordaje Médico/Previo</option>
+                            <option value="NO VIABLE - Derivación a otra Especialidad Externa">NO VIABLE - Derivación a otra Especialidad Externa</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Síntesis Técnica y Recomendaciones para la Familia (Aparecerá en el Informe):</label>
+                        <textarea id="e_sintesis" placeholder="Escriba el análisis del caso y la ruta sugerida de intervención..."></textarea>
+                    </div>
+
+                    <!-- NUEVOS BOTONES DE ACCIÓN PARA GENERAR INFORMES EN VENTANA NUEVA -->
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="generarInformePadreVentana()">📄 Generar Informe Final para Padres ↗</button>
+                        <button class="btn btn-secondary" onclick="generarInformeEspecialistaVentana()">📋 Generar Informe Final Especialista ↗</button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Script de Persistencia, Lógica Dinámica y Control de Acceso -->
+    <script>
+        const PASSWORD_ESPECIALISTA = "GROW2026";
+
+        let expedientesDB = JSON.parse(localStorage.getItem('expedientes_neuro') || '{}');
+        let expedienteActual = null;
+
+        const TEXTOS_MATRIZ = {
+            global: {
+                alto: "El resultado general muestra un nivel alto de desafíos en varias de las áreas evaluadas. Esto indica que actualmente existen aspectos importantes del entorno familiar, el bienestar físico o el desarrollo funcional de tu hijo que necesitan mayor atención y acompañamiento. Este resultado no constituye un diagnóstico; funciona como una guía para identificar prioridades y organizar un plan de apoyo más integral.",
+                medio: "El resultado general refleja un nivel medio de desafíos. Esto significa que existen algunas áreas que están funcionando adecuadamente y otras que podrían beneficiarse de apoyo, ajustes o seguimiento. El objetivo será identificar cuáles son esas áreas específicas y trabajar en ellas de manera progresiva, respetando siempre el ritmo y las necesidades particulares de tu hijo y de la familia.",
+                bajo: "El resultado general muestra un nivel bajo de desafíos en las áreas exploradas. Esto sugiere que, en términos generales, se observan condiciones favorables y menos indicadores que requieran intervención prioritaria. Aun así, revisaremos cada fase individualmente, ya que pueden existir aspectos puntuales que merezcan atención aunque el resultado global sea bajo."
+            },
+            fase1: {
+                alto: "En esta fase se observa un nivel alto de desafío en el equilibrio emocional y familiar. Es posible que actualmente exista una carga importante relacionada con el estrés, el autocuidado, la energía, la comunicación emocional o la percepción de apoyo. Fortalecer el bienestar del cuidador y la red familiar puede convertirse en una parte importante del acompañamiento del niño.",
+                medio: "El resultado indica un nivel medio de desafío en el entorno emocional familiar. Existen recursos positivos dentro de la familia, pero también algunos aspectos relacionados con estrés, apoyo, autocuidado o seguridad en la crianza que podrían fortalecerse. Trabajar en ellos puede ayudar a crear un entorno más estable y favorable para toda la familia.",
+                bajo: "Esta fase muestra un nivel bajo de desafío en el entorno emocional familiar. Se observan varios factores protectores, como una adecuada percepción de apoyo, capacidad de afrontamiento o recursos emocionales. El objetivo será conservar estas fortalezas y atender cualquier aspecto puntual que haya surgido durante la evaluación.",
+                recom: {
+                    alto: [
+                        "Si notas altos niveles de estrés familiar, recomendamos programar pequeños micro-descansos diarios de 10 a 15 minutos de autocuidado exclusivo para los cuidadores.",
+                        "Si sientes una baja red de apoyo, recomendamos delegar explícitamente al menos 2 tareas operativas de la casa con otros familiares o allegados.",
+                        "Si te abruma la rutina diaria, recomendamos llevar un registro breve de emociones al final del día para desahogar cargas y priorizar necesidades."
+                    ],
+                    medio: [
+                        "Si experimentas tensión ocasional, recomendamos establecer momentos de comunicación abierta en familia sobre cómo se sienten sin juzgarse.",
+                        "Si la crianza se vuelve agotadora a ratos, recomendamos unificar pautas con tu pareja o familiares directos para no sobrecargarte.",
+                        "Si falta tiempo personal, recomendamos reservar al menos un bloque semanal fijo para realizar una actividad placentera fuera del rol de cuidador."
+                    ],
+                    bajo: [
+                        "Recomendamos mantener los espacios de diálogo y apoyo mutuo que actualmente han demostrado ser efectivos en su hogar.",
+                        "Recomendamos fortalecer las actividades recreativas en familia para continuar consolidando la cohesión emocional.",
+                        "Recomendamos continuar practicando el autocuidado preventivo para sostener la buena energía de la familia a largo plazo."
+                    ]
+                }
+            },
+            fase2: {
+                alto: "El resultado muestra un nivel alto de desafíos en hábitos y bienestar fisiológico. Se identifican varios aspectos relacionados con alimentación, sueño, digestión, evacuaciones u otros hábitos cotidianos que conviene revisar con mayor profundidad. Esta información nos permite reconocer qué áreas necesitan ser priorizadas para favorecer mejores condiciones de bienestar general.",
+                medio: "En esta fase se observa un nivel medio de desafíos en el área de bienestar fisiológico. Algunos hábitos parecen estar funcionando adecuadamente, mientras que otros relacionados con alimentación, descanso o funcionamiento gastrointestinal podrían beneficiarse de ajustes y seguimiento. El análisis individual de las respuestas ayudará a definir por dónde comenzar.",
+                bajo: "El resultado refleja un nivel bajo de desafíos en los aspectos fisiológicos evaluados. Esto sugiere que varios hábitos relacionados con alimentación, sueño y funcionamiento digestivo se encuentran relativamente bien establecidos. Se revisarán igualmente los antecedentes y respuestas individuales para detectar cualquier aspecto específico que requiera atención.",
+                recom: {
+                    alto: [
+                        "Si tu hijo tiene problemas de sueño, recomendamos establecer una rutina nocturna constante, reduciendo pantallas 2 horas antes de acostarse ya que es clave que duerma entre 8 y 10 horas diarias.",
+                        "Si presenta molestias digestivas o de evacuación, recomendamos incrementar el consumo gradual de agua e integrar fibra a través de frutas y vegetales diarios.",
+                        "Si consume frecuentemente ultraprocesados, recomendamos reducirlos paulatinamente sustituyéndolos por meriendas densas en nutrientes preparadas en casa."
+                    ],
+                    medio: [
+                        "Si la digestión es irregular a veces, recomendamos mantener horarios regulares para las comidas principales evitando distracciones electrónicas en la mesa.",
+                        "Si el inicio del sueño es lento, recomendamos crear un ambiente oscuro, fresco y silencioso en su habitación media hora antes de dormir.",
+                        "Si muestra selectividad leve con alimentos, recomendamos ofrecerle un mismo alimento en diferentes presentaciones sin forzar su ingesta."
+                    ],
+                    bajo: [
+                        "Recomendamos mantener la estructura actual de horarios de sueño para asegurar el descanso reparador del niño.",
+                        "Recomendamos seguir promoviendo una hidratación adecuada a lo largo del día basada principalmente en agua pura.",
+                        "Recomendamos conservar la variedad de alimentos frescos dentro de la dieta familiar cotidiana."
+                    ]
+                }
+            },
+            fase3: {
+                alto: "Esta fase refleja un nivel alto de desafíos en algunas habilidades relacionadas con atención, autonomía, procesamiento sensorial o funcionamiento cotidiano. Esto nos indica que existen áreas del desarrollo que requieren una observación más detallada para comprender cómo están influyendo en la vida diaria del niño y qué estrategias pueden ayudar a fortalecerlas.",
+                medio: "El resultado muestra un nivel medio de desafíos en el área de NeuroActivación. Se observan habilidades que están bien desarrolladas junto con otras que pueden necesitar mayor estimulación o acompañamiento, especialmente en aspectos como atención, seguimiento de instrucciones, autonomía, organización o procesamiento sensorial.",
+                bajo: "En esta fase se observa un nivel bajo de desafíos en las habilidades evaluadas. En general, el niño muestra recursos favorables en aspectos relacionados con atención, autonomía y funcionamiento cotidiano. Esto no significa que no existan áreas por fortalecer, sino que actualmente no se observa una concentración elevada de dificultades dentro de este bloque.",
+                recom: {
+                    alto: [
+                        "Si muestra dificultades para seguir instrucciones, recomendamos dar consignas sencillas de un solo paso mirándole a los ojos antes de pasar a la siguiente tarea.",
+                        "Si experimenta alta sensibilidad a luces o sonidos, recomendamos adaptar su espacio de estudio o descanso haciéndolo libre de sobreestímulos visuales y auditivos.",
+                        "Si le cuesta organizarse, recomendamos colocar un panel con pictogramas o imágenes visibles que marquen la secuencia diaria de sus actividades."
+                    ],
+                    medio: [
+                        "Si tiende a distraerse al hacer tareas, recomendamos estructurar el tiempo con pausas cortas de movimiento activo cada 15 a 20 minutos de concentración.",
+                        "Si busca movimiento constantemente, recomendamos integrar pausas con ejercicios de descargue motor estructurado antes de pedirle estar sentado.",
+                        "Si requiere apoyo para la autonomía diaria, recomendamos usar listas de verificación simples para que marque las tareas que va completando por sí solo."
+                    ],
+                    bajo: [
+                        "Recomendamos seguir estimulando la resolución autónoma de problemas mediante juegos de mesa, rompecabezas o retos acordes a su edad.",
+                        "Recomendamos reforzar positivamente cada logro de autonomía alcanzado en su rutina diaria.",
+                        "Recomendamos ofrecer oportunidades continuas para el juego libre y la exploración en entornos naturales."
+                    ]
+                }
+            }
+        };
+
+        function irAInicio() {
+            ocultarTodasVistas();
+            document.getElementById('view-portal').classList.add('active');
+        }
+
+        function seleccionarRol(rol) {
+            ocultarTodasVistas();
+            if (rol === 'padre') {
+                document.getElementById('view-padre').classList.add('active');
+            } else if (rol === 'especialista') {
+                document.getElementById('view-especialista').classList.add('active');
+            }
+        }
+
+        function ocultarTodasVistas() {
+            document.querySelectorAll('.view-panel').forEach(v => v.classList.remove('active'));
+        }
+
+        // GUARDAR DATOS EN BASE DE DATOS LOCAL
+        function guardarFormularioPadre() {
+            const nombreNino = document.getElementById('p_nombre_nino').value.trim();
+            const idNino = document.getElementById('p_id_nino').value.trim();
+
+            if (!nombreNino || !idNino) {
+                alert("Por favor complete los campos obligatorios: Nombre del niño y Número de Identidad Personal.");
+                return;
+            }
+
+            // Recopilar cada pregunta y la respuesta seleccionada por el padre
+            const detalleRespuestas = [];
+            document.querySelectorAll('#view-padre .q-item').forEach((qEl, idx) => {
+                const qText = qEl.querySelector('.q-text').innerText;
+                const checkedRadio = qEl.querySelector('input[type="radio"]:checked');
+                let answerText = "No respondida";
+                if (checkedRadio) {
+                    answerText = checkedRadio.getAttribute('data-label') || checkedRadio.value;
+                }
+                detalleRespuestas.push({
+                    num: idx + 1,
+                    pregunta: qText,
+                    respuesta: answerText
+                });
+            });
+
+            // Recopilar Banderas de Salud seleccionadas
+            const condicionesSeleccionadas = [];
+            document.querySelectorAll('.checkbox-grid input[type="checkbox"]:checked').forEach(cb => {
+                condicionesSeleccionadas.push(cb.value);
+            });
+
+            const f1 = calcFase(['f1_q1', 'f1_q2', 'f1_q3', 'f1_q4', 'f1_q5', 'f1_q6', 'f1_q7', 'f1_q8', 'f1_q9', 'f1_q10', 'f1_q11', 'f1_q12']);
+            const f2 = calcFase(['f2_q6', 'f2_q8', 'f2_q9', 'f2_q10', 'f2_q12', 'f2_q13', 'f2_q14', 'f2_q15', 'f2_q17', 'f2_q18', 'f2_q19']);
+            const f3 = calcFase(['f3_q1', 'f3_q2', 'f3_q3', 'f3_q4', 'f3_q5', 'f3_q6', 'f3_q7', 'f3_q8', 'f3_q9', 'f3_q10', 'f3_q13', 'f3_q14', 'f3_q15', 'f3_q16']);
+            const global = Math.round((f1 + f2 + f3) / 3);
+
+            const expKey = `${nombreNino.toLowerCase()}_${idNino.toLowerCase()}`;
+            
+            expedientesDB[expKey] = {
+                tutor: document.getElementById('p_tutor').value,
+                correo: document.getElementById('p_correo').value,
+                celular: document.getElementById('p_celular').value,
+                nombreNino: nombreNino,
+                idNino: idNino,
+                fechaNac: document.getElementById('p_fecha_nac').value,
+                edad: document.getElementById('p_edad').value,
+                peso: document.getElementById('p_peso').value,
+                estatura: document.getElementById('p_estatura').value,
+                dxPrevios: document.getElementById('p_dx_previos').value || "Ninguno",
+                parto: document.getElementById('f2_q1').value,
+                nacimiento: document.getElementById('f2_q2').value,
+                lactancia: document.getElementById('f2_q3').value,
+                condiciones: condicionesSeleccionadas,
+                medicamentos: document.getElementById('f2_q5').value || "Ninguno",
+                scores: { f1, f2, f3, global },
+                preguntasRespuestas: detalleRespuestas,
+                fechaRegistro: new Date().toLocaleDateString('es-ES')
+            };
+
+            localStorage.setItem('expedientes_neuro', JSON.stringify(expedientesDB));
+
+            alert("✓ Cuestionario guardado exitosamente en la base de datos.");
+            irAInicio();
+        }
+
+        function calcFase(qNames) {
+            let sum = 0;
+            qNames.forEach(name => {
+                const checked = document.querySelector(`input[name="${name}"]:checked`);
+                sum += checked ? parseInt(checked.value) : 1;
+            });
+            return Math.round((sum / (5 * qNames.length)) * 100);
+        }
+
+        function buscarExpediente() {
+            const passEntered = document.getElementById('busq_pass').value;
+
+            if (passEntered !== PASSWORD_ESPECIALISTA) {
+                alert("🔒 Contraseña incorrecta. Acceso restringido únicamente a especialistas autorizados.");
+                document.getElementById('panel_evaluacion_clinica').style.display = 'none';
+                return;
+            }
+
+            const nombre = document.getElementById('busq_nombre').value.trim().toLowerCase();
+            const id = document.getElementById('busq_id').value.trim().toLowerCase();
+            const expKey = `${nombre}_${id}`;
+
+            if (expedientesDB[expKey]) {
+                expedienteActual = expedientesDB[expKey];
+                mostrarResultadosClinicos(expedienteActual);
+            } else {
+                alert("⚠️ No se encontró ningún cuestionario registrado con ese Nombre e Identificación.");
+                document.getElementById('panel_evaluacion_clinica').style.display = 'none';
+            }
+        }
+
+        function getLvl(pct) {
+            if (pct >= 80) return { txt: "ALTO", cls: "lvl-alto", key: "alto" };
+            if (pct >= 40) return { txt: "MEDIO", cls: "lvl-medio", key: "medio" };
+            return { txt: "BAJO", cls: "lvl-bajo", key: "bajo" };
+        }
+
+        function mostrarResultadosClinicos(exp) {
+            document.getElementById('panel_evaluacion_clinica').style.display = 'block';
+
+            const l1 = getLvl(exp.scores.f1);
+            document.getElementById('res_f1_pct').innerText = exp.scores.f1 + "%";
+            document.getElementById('res_f1_lvl').innerText = l1.txt;
+            document.getElementById('res_f1_lvl').className = "level-badge " + l1.cls;
+
+            const l2 = getLvl(exp.scores.f2);
+            document.getElementById('res_f2_pct').innerText = exp.scores.f2 + "%";
+            document.getElementById('res_f2_lvl').innerText = l2.txt;
+            document.getElementById('res_f2_lvl').className = "level-badge " + l2.cls;
+
+            const l3 = getLvl(exp.scores.f3);
+            document.getElementById('res_f3_pct').innerText = exp.scores.f3 + "%";
+            document.getElementById('res_f3_lvl').innerText = l3.txt;
+            document.getElementById('res_f3_lvl').className = "level-badge " + l3.cls;
+
+            const lg = getLvl(exp.scores.global);
+            document.getElementById('res_global_pct').innerText = exp.scores.global + "%";
+            document.getElementById('res_global_lvl').innerText = "NIVEL " + lg.txt + " DESAFÍO";
+            document.getElementById('res_global_lvl').className = "level-badge " + lg.cls;
+        }
+
+        // GENERAR INFORME PADRES EN VENTANA NUEVA
+        function generarInformePadreVentana() {
+            if (!expedienteActual) return;
+
+            const espSeleccionado = document.getElementById('busq_especialista').value;
+            const med = document.getElementById('e_medico_flag').value;
+            const econ = document.getElementById('e_economico_flag').value;
+            const dictamen = document.getElementById('e_dictamen').value;
+            const sintesis = document.getElementById('e_sintesis').value || "Se recomienda inicio de abordaje NeuroIntegral.";
+
+            const l1 = getLvl(expedienteActual.scores.f1);
+            const l2 = getLvl(expedienteActual.scores.f2);
+            const l3 = getLvl(expedienteActual.scores.f3);
+            const lg = getLvl(expedienteActual.scores.global);
+
+            const recomF1Html = TEXTOS_MATRIZ.fase1.recom[l1.key].map(item => `<li>${item}</li>`).join('');
+            const recomF2Html = TEXTOS_MATRIZ.fase2.recom[l2.key].map(item => `<li>${item}</li>`).join('');
+            const recomF3Html = TEXTOS_MATRIZ.fase3.recom[l3.key].map(item => `<li>${item}</li>`).join('');
+
+            const winPadres = window.open('', '_blank');
+            winPadres.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Informe Final para la Familia - ${expedienteActual.nombreNino}</title>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>
+                    <style>
+                        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #525659; margin: 0; padding: 20px; color: #2D3748; }
+                        .paper { background: white; max-width: 850px; margin: 0 auto; padding: 40px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+                        .header { display: flex; justify-content: space-between; border-bottom: 3px solid #2C5E43; padding-bottom: 12px; margin-bottom: 20px; }
+                        .table-info { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        .table-info td { padding: 8px; border: 1px solid #E2E8F0; font-size: 14px; }
+                        .table-info td.label { font-weight: bold; background: #F1F5F9; color: #2C5E43; width: 25%; }
+                        .grid-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; text-align: center; }
+                        .score-card { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px; border-radius: 6px; }
+                        .score-card .val { font-size: 24px; font-weight: bold; color: #2C5E43; }
+                        .block { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+                        .block-title { font-weight: bold; color: #2C5E43; margin-bottom: 5px; }
+                        ul { margin-left: 20px; font-size: 13px; color: #475569; }
+                        .actions { text-align: center; margin-bottom: 20px; }
+                        .btn-print { background: #2C5E43; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+                    </style>
+                </head>
+                <body>
+                    <div class="actions">
+                        <button class="btn-print" onclick="window.print()">🖨 Imprimir / Guardar como PDF</button>
+                    </div>
+
+                    <div class="paper" id="reportContent">
+                        <div class="header">
+                            <div>
+                                <h1 style="color: #2C5E43; margin: 0; font-size: 22px;">GROW BRAIN CENTER</h1>
+                                <h2 style="color: #8C4A32; margin: 0; font-size: 15px;">INFORME DE VALORACIÓN SITUACIONAL</h2>
+                                <small style="color: #64748B;">Método Neuro GeneZen® | Bienestar NeuroIntegral</small>
+                            </div>
+                            <div style="text-align: right; font-size: 12px; color: #64748B;">
+                                <strong>GROW BRAIN DEVELOPMENT S.E.P.</strong><br>
+                                Fecha: ${new Date().toLocaleDateString('es-ES')}
+                            </div>
+                        </div>
+
+                        <table class="table-info">
+                            <tr>
+                                <td class="label">Paciente:</td>
+                                <td>${expedienteActual.nombreNino}</td>
+                                <td class="label">Identificación:</td>
+                                <td>${expedienteActual.idNino}</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Padre / Tutor:</td>
+                                <td>${expedienteActual.tutor}</td>
+                                <td class="label">Contacto:</td>
+                                <td>${expedienteActual.correo} / ${expedienteActual.celular}</td>
+                            </tr>
+                        </table>
+
+                        <h4 style="color: #2C5E43; margin-bottom: 10px;">Resultados de la Matriz Diagnóstica</h4>
+                        <div class="grid-scores">
+                            <div class="score-card">
+                                <div>Fase 1: NeuroEquilibrio</div>
+                                <div class="val">${expedienteActual.scores.f1}%</div>
+                                <div>Nivel ${l1.txt}</div>
+                            </div>
+                            <div class="score-card">
+                                <div>Fase 2: NeuroBio</div>
+                                <div class="val">${expedienteActual.scores.f2}%</div>
+                                <div>Nivel ${l2.txt}</div>
+                            </div>
+                            <div class="score-card">
+                                <div>Fase 3: NeuroActivación</div>
+                                <div class="val">${expedienteActual.scores.f3}%</div>
+                                <div>Nivel ${l3.txt}</div>
+                            </div>
+                        </div>
+
+                        <div class="block">
+                            <div class="block-title">Resultado General Global</div>
+                            <p style="font-size: 13px; margin: 0;">${TEXTOS_MATRIZ.global[lg.key]}</p>
+                        </div>
+
+                        <div class="block">
+                            <div class="block-title">Fase 1 – NeuroEquilibrio Familiar</div>
+                            <p style="font-size: 13px; margin-bottom: 8px;">${TEXTOS_MATRIZ.fase1[l1.key]}</p>
+                            <strong>Recomendaciones para el hogar:</strong>
+                            <ul>${recomF1Html}</ul>
+                        </div>
+
+                        <div class="block">
+                            <div class="block-title">Fase 2 – NeuroBio Optimización</div>
+                            <p style="font-size: 13px; margin-bottom: 8px;">${TEXTOS_MATRIZ.fase2[l2.key]}</p>
+                            <strong>Recomendaciones para el hogar:</strong>
+                            <ul>${recomF2Html}</ul>
+                        </div>
+
+                        <div class="block">
+                            <div class="block-title">Fase 3 – NeuroActivación Efectiva</div>
+                            <p style="font-size: 13px; margin-bottom: 8px;">${TEXTOS_MATRIZ.fase3[l3.key]}</p>
+                            <strong>Recomendaciones para el hogar:</strong>
+                            <ul>${recomF3Html}</ul>
+                        </div>
+
+                        <div style="background: #F0FDF4; border: 1px solid #86EFAC; border-left: 5px solid #10B981; padding: 12px; margin-bottom: 15px; border-radius: 4px;">
+                            <strong>DICTAMEN FINAL:</strong> ${dictamen}
+                        </div>
+
+                        <div style="background: white; border: 1px solid #CBD5E1; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
+                            <strong>Síntesis Técnica del Especialista:</strong>
+                            <p style="font-size: 13px; margin-top: 5px; white-space: pre-line;">${sintesis}</p>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
+                            <div style="text-align: center; width: 200px;">
+                                <div style="border-bottom: 1px solid #000; height: 30px; margin-bottom: 5px;"></div>
+                                <strong>${espSeleccionado}</strong><br>
+                                <small>Especialista en Bienestar NeuroIntegral</small>
+                            </div>
+                            <div style="text-align: center; width: 200px;">
+                                <div style="border-bottom: 1px solid #000; height: 30px; margin-bottom: 5px;"></div>
+                                <strong>Firma de Conformidad Tutor</strong><br>
+                                <small>Padre / Madre / Responsable</small>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+
+        // GENERAR INFORME ESPECIALISTA COMPLETO EN VENTANA NUEVA
+        function generarInformeEspecialistaVentana() {
+            if (!expedienteActual) return;
+
+            const espSeleccionado = document.getElementById('busq_especialista').value;
+            const med = document.getElementById('e_medico_flag').value;
+            const econ = document.getElementById('e_economico_flag').value;
+            const dictamen = document.getElementById('e_dictamen').value;
+            const sintesis = document.getElementById('e_sintesis').value || "Sin síntesis técnica registrada.";
+
+            let tablaRespuestasHtml = "";
+            if (expedienteActual.preguntasRespuestas && expedienteActual.preguntasRespuestas.length > 0) {
+                tablaRespuestasHtml = expedienteActual.preguntasRespuestas.map(pr => `
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #CBD5E1; font-size: 12px; width: 65%;">${pr.num}. ${pr.pregunta}</td>
+                        <td style="padding: 8px; border: 1px solid #CBD5E1; font-size: 12px; font-weight: bold; color: #8C4A32;">${pr.respuesta}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tablaRespuestasHtml = `<tr><td colspan="2" style="padding: 10px; text-align: center;">No se registraron las preguntas individuales.</td></tr>`;
+            }
+
+            const winEsp = window.open('', '_blank');
+            winEsp.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Expediente Técnico Clínico - ${expedienteActual.nombreNino}</title>
+                    <style>
+                        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #323639; margin: 0; padding: 20px; color: #1E293B; }
+                        .paper { background: white; max-width: 900px; margin: 0 auto; padding: 40px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+                        .header { border-bottom: 3px solid #8C4A32; padding-bottom: 10px; margin-bottom: 20px; }
+                        .table-data { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        .table-data td { padding: 8px; border: 1px solid #CBD5E1; font-size: 13px; }
+                        .table-data td.lbl { font-weight: bold; background: #F1F5F9; color: #8C4A32; width: 25%; }
+                        .section-title { background: #8C4A32; color: white; padding: 6px 12px; font-weight: bold; font-size: 14px; margin-top: 20px; margin-bottom: 10px; border-radius: 4px; }
+                        .actions { text-align: center; margin-bottom: 20px; }
+                        .btn-print { background: #8C4A32; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+                    </style>
+                </head>
+                <body>
+                    <div class="actions">
+                        <button class="btn-print" onclick="window.print()">🖨 Imprimir Expediente Técnico</button>
+                    </div>
+
+                    <div class="paper">
+                        <div class="header">
+                            <h2 style="color: #8C4A32; margin: 0; font-size: 20px;">GROW BRAIN CENTER — EXPEDIENTE TÉCNICO CLÍNICO</h2>
+                            <small style="color: #64748B;">DOCUMENTO DE USO INTERNO PARA EL ESPECIALISTA</small>
+                        </div>
+
+                        <div class="section-title">1. INFORMACIÓN GENERAL DEL PACIENTE Y TUTOR</div>
+                        <table class="table-data">
+                            <tr>
+                                <td class="lbl">Nombre del Niño(a):</td>
+                                <td>${expedienteActual.nombreNino}</td>
+                                <td class="lbl">Cédula / ID:</td>
+                                <td>${expedienteActual.idNino}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Fecha de Nacimiento:</td>
+                                <td>${expedienteActual.fechaNac}</td>
+                                <td class="lbl">Edad / Peso / Talla:</td>
+                                <td>${expedienteActual.edad || '--'} / ${expedienteActual.peso || '--'}kg / ${expedienteActual.estatura || '--'}cm</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Nombre del Tutor:</td>
+                                <td>${expedienteActual.tutor}</td>
+                                <td class="lbl">Contacto:</td>
+                                <td>${expedienteActual.correo} / ${expedienteActual.celular}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Diagnósticos Previos:</td>
+                                <td colspan="3">${expedienteActual.dxPrevios}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Antecedentes Nacimiento:</td>
+                                <td colspan="3">${expedienteActual.parto} | ${expedienteActual.nacimiento} | Lactancia: ${expedienteActual.lactancia}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Banderas de Salud:</td>
+                                <td colspan="3">${(expedienteActual.condiciones && expedienteActual.condiciones.length > 0) ? expedienteActual.condiciones.join(', ') : 'Ninguna seleccionada'}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Medicamentos Activos:</td>
+                                <td colspan="3">${expedienteActual.medicamentos}</td>
+                            </tr>
+                        </table>
+
+                        <div class="section-title">2. PARÁMETROS EVALUADOS POR EL ESPECIALISTA</div>
+                        <table class="table-data">
+                            <tr>
+                                <td class="lbl">Especialista Evaluador:</td>
+                                <td>${espSeleccionado}</td>
+                                <td class="lbl">Fecha de Evaluación:</td>
+                                <td>${new Date().toLocaleDateString('es-ES')}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Puntuaciones Matriz:</td>
+                                <td colspan="3">Fase 1: <strong>${expedienteActual.scores.f1}%</strong> | Fase 2: <strong>${expedienteActual.scores.f2}%</strong> | Fase 3: <strong>${expedienteActual.scores.f3}%</strong> | Global: <strong>${expedienteActual.scores.global}%</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Riesgo Médico / Fármacos:</td>
+                                <td>${med === 'Si' ? 'Sí presenta condición de riesgo' : 'No presenta patologías limitantes'}</td>
+                                <td class="lbl">Viabilidad Económica:</td>
+                                <td>${econ}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Dictamen Final de Atención:</td>
+                                <td colspan="3" style="font-weight: bold; color: #2C5E43;">${dictamen}</td>
+                            </tr>
+                            <tr>
+                                <td class="lbl">Síntesis Técnica Registrada:</td>
+                                <td colspan="3" style="white-space: pre-line;">${sintesis}</td>
+                            </tr>
+                        </table>
+
+                        <div class="section-title">3. RESPUESTAS DETALLADAS DEL CUESTIONARIO (LLENADO POR EL PADRE)</div>
+                        <table class="table-data">
+                            <thead>
+                                <tr style="background: #F1F5F9; color: #1E293B;">
+                                    <th style="padding: 8px; border: 1px solid #CBD5E1; text-align: left;">Pregunta / Ítem del Cuestionario</th>
+                                    <th style="padding: 8px; border: 1px solid #CBD5E1; text-align: left;">Respuesta Seleccionada</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tablaRespuestasHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </body>
+                </html>
+            `);
+        }
+    </script>
+</body>
+</html>
