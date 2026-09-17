@@ -1057,7 +1057,7 @@
             return Math.round((sum / (5 * qNames.length)) * 100);
         }
 
-        // BUSCAR EXPEDIENTE EN GOOGLE SHEETS O EN LOCALSTORAGE
+        // BUSCAR EXPEDIENTE EN GOOGLE SHEETS O EN LOCALSTORAGE (FUNCIÓN ACTUALIZADA)
         function buscarExpediente() {
             const passEntered = document.getElementById('busq_pass').value;
 
@@ -1071,29 +1071,37 @@
             const id = document.getElementById('busq_id').value.trim().toLowerCase();
             const expKey = `${nombre}_${id}`;
 
-            fetch(`${SCRIPT_URL}?cedula=${encodeURIComponent(id)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data && data.result !== "not_found") {
-                        expedienteActual = data;
-                        mostrarResultadosClinicos(expedienteActual);
-                    } else if (expedientesDB[expKey]) {
-                        expedienteActual = expedientesDB[expKey];
-                        mostrarResultadosClinicos(expedienteActual);
-                    } else {
-                        alert("⚠️ No se encontró ningún cuestionario registrado con esa cédula.");
-                        document.getElementById('panel_evaluacion_clinica').style.display = 'none';
-                    }
-                })
-                .catch(err => {
-                    if (expedientesDB[expKey]) {
-                        expedienteActual = expedientesDB[expKey];
-                        mostrarResultadosClinicos(expedienteActual);
-                    } else {
-                        alert("⚠️ Error de conexión a la nube y no se encontró registro local.");
-                        document.getElementById('panel_evaluacion_clinica').style.display = 'none';
-                    }
-                });
+            // Consultar a Google Apps Script permitiendo redirecciones automáticas
+            fetch(`${SCRIPT_URL}?cedula=${encodeURIComponent(id)}`, {
+                method: "GET",
+                redirect: "follow"
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Error en la petición de red");
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.result !== "not_found") {
+                    expedienteActual = data;
+                    mostrarResultadosClinicos(expedienteActual);
+                } else if (expedientesDB[expKey]) {
+                    expedienteActual = expedientesDB[expKey];
+                    mostrarResultadosClinicos(expedienteActual);
+                } else {
+                    alert("⚠️ No se encontró ningún cuestionario registrado con la cédula/ID ingresado.");
+                    document.getElementById('panel_evaluacion_clinica').style.display = 'none';
+                }
+            })
+            .catch(err => {
+                console.warn("Fallo de conexión o CORS al consultar Google Sheets, recurriendo a localStorage:", err);
+                if (expedientesDB[expKey]) {
+                    expedienteActual = expedientesDB[expKey];
+                    mostrarResultadosClinicos(expedienteActual);
+                } else {
+                    alert("⚠️ Error de conexión a la nube y no se encontró registro local.");
+                    document.getElementById('panel_evaluacion_clinica').style.display = 'none';
+                }
+            });
         }
 
         function getLvl(pct) {
